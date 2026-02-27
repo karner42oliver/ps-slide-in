@@ -3,12 +3,15 @@
 	$url = (is_home() || is_front_page()) ? site_url() : get_permalink();
 	$wp_request = (isset($wp) && isset($wp->request)) ? $wp->request : '';
 	$url = apply_filters('wdsi-url-current_url', ($url ? $url : site_url($wp_request))); // Fix for empty URLs
+	$loaded_scripts = isset($GLOBALS['wdsi_loaded_scripts']) && is_array($GLOBALS['wdsi_loaded_scripts'])
+		? $GLOBALS['wdsi_loaded_scripts']
+		: array();
 ?>
 <div class="wdsi-slide-control">
 	<div class="wdsi-slide-share wdsi-clearfix">
 		<?php if ($services) foreach ($services as $key=>$service) { ?>
 			<?php $idx = is_array($service) ? strtolower(preg_replace('/[^-a-zA-Z0-9_]/', '', $service['name'])) : $key;?>
-			<div class="wdsi-item" id="wdsi-service-<?php echo $idx;?>">
+				<div class="wdsi-item" id="wdsi-service-<?php echo esc_attr($idx);?>">
 				<?php if (is_array($service)) {
 					echo $service['code'];
 				} else {
@@ -18,7 +21,10 @@
 								? 'none'
 								: 'horizontal'
 							;
-							if (!in_array('twitter', $skip_script)) echo '<script type="text/javascript" src="https://platform.twitter.com/widgets.js"></script>';
+								if (!in_array('twitter', $skip_script) && !in_array('twitter', $loaded_scripts, true)) {
+									echo '<script type="text/javascript" src="https://platform.twitter.com/widgets.js"></script>';
+									$loaded_scripts[] = 'twitter';
+								}
 							echo '<a href="https://twitter.com/intent/tweet" class="twitter-share-button" data-count="' . $count . '">Twittern</a>';
 							break;
 						case "facebook":
@@ -39,10 +45,16 @@
 								'</a>';
 							break;*/
 						case "reddit":
-							echo '<script type="text/javascript" src="https://www.reddit.com/static/button/button1.js"></script>';
+							if (!in_array('reddit', $loaded_scripts, true)) {
+								echo '<script type="text/javascript" src="https://www.reddit.com/static/button/button1.js"></script>';
+								$loaded_scripts[] = 'reddit';
+							}
 							break;
 						case "linkedin":
-							if (!in_array('linkedin', $skip_script)) echo '<script src="https://platform.linkedin.com/in.js" type="text/javascript"></script>';
+							if (!in_array('linkedin', $skip_script) && !in_array('linkedin', $loaded_scripts, true)) {
+								echo '<script src="https://platform.linkedin.com/in.js" type="text/javascript"></script>';
+								$loaded_scripts[] = 'linkedin';
+							}
 							echo '<script type="IN/Share" data-counter="right"></script>';
 							break;
 						case "post_voting":
@@ -56,7 +68,10 @@
 							}
 							break;
 						case "pinterest":
-							if (!in_array('linkedin', $skip_script)) echo '<script type="text/javascript" src="https://assets.pinterest.com/js/pinit.js"></script>';
+							if (!in_array('pinterest', $skip_script) && !in_array('pinterest', $loaded_scripts, true)) {
+								echo '<script type="text/javascript" src="https://assets.pinterest.com/js/pinit.js"></script>';
+								$loaded_scripts[] = 'pinterest';
+							}
 							$count = in_array('pinterest', $no_count)
 								? 'none'
 								: 'beside'
@@ -69,5 +84,6 @@
 			</div>
 		<?php } ?>
 	</div>
+	<?php $GLOBALS['wdsi_loaded_scripts'] = $loaded_scripts; ?>
 	<div class="wdsi-slide-close"><a href="#"><?php _e('Schließen', 'wdsi'); ?></a></div>
 </div>

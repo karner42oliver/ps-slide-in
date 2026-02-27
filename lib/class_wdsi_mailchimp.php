@@ -113,7 +113,7 @@ class Wdsi_Mailchimp {
 
 		$parsed_args = $this->_parse_args($args);
 
-		$resp = wp_remote_get("http://{$server}.api.mailchimp.com/3.0/?method={$method}&output=json&apikey={$key}{$parsed_args}");
+		$resp = wp_remote_get("https://{$server}.api.mailchimp.com/3.0/?method={$method}&output=json&apikey={$key}{$parsed_args}");
 		if(is_wp_error($resp)) return false; // Request fail
 		if (wp_remote_retrieve_response_code($resp) != 200) return false; // Request fail
 		$body = wp_remote_retrieve_body($resp);

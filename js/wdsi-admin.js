@@ -146,6 +146,7 @@ $(function () {
 	function preview () {
 		return $.post(ajaxurl, {
 			action: "wdsi_preview_slide",
+			_ajax_nonce: (window.l10nWdsi && l10nWdsi.preview_nonce) ? l10nWdsi.preview_nonce : "",
 			opts: {
 				"theme": $('[name="wdsi[theme]"]:checked').val(),
 				"show_after-condition": "timeout",

@@ -143,6 +143,7 @@ class Wdsi_SlideIn {
 	
 	function render_conditions_box () {
 		global $post;
+		wp_nonce_field('wdsi_slide_in_meta', 'wdsi_slide_in_meta_nonce');
 		$show_options = get_post_meta($post->ID, 'wdsi_show_if', true);
 		
 		echo '<div class="psource-ui">' .
@@ -565,6 +566,12 @@ class Wdsi_SlideIn {
 			$post = get_post($post_id);
 		}
 		if (!$post || self::POST_TYPE != $post->post_type) return false;
+		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return false;
+		if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return false;
+		if (!isset($_POST['wdsi_slide_in_meta_nonce']) || !wp_verify_nonce($_POST['wdsi_slide_in_meta_nonce'], 'wdsi_slide_in_meta')) {
+			return false;
+		}
+		if (!current_user_can('edit_post', $post_id)) return false;
 
 		if (wdsi_getval($_POST, 'show_if')) {
 			// If we have Post Indexer present, remove the post save action for the moment.

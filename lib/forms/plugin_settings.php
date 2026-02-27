@@ -3,6 +3,7 @@
 	<h2><?php echo __('Globale Einstellungen', 'wdsi');?></h2>
 
 	<form action="" method="post" class="psource-ui">
+		<?php wp_nonce_field('wdsi_options_save', 'wdsi_options_nonce'); ?>
 
 		<?php settings_fields('wdsi_options_page'); ?>
 		<?php do_settings_sections('wdsi_options_page'); ?>

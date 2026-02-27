@@ -38,8 +38,14 @@ class Wdsi_AdminPages {
 
 	function json_mailchimp_subscribe () {
 		$is_error = 1;
+		if (!check_ajax_referer('wdsi_mailchimp', 'nonce', false)) {
+			die(json_encode(array(
+				'is_error' => $is_error,
+				'message' => __('Ungultige Anfrage', 'wdsi'),
+			)));
+		}
 
-		$post_id = !empty($_POST['post_id']) ? $_POST['post_id'] : false;
+		$post_id = !empty($_POST['post_id']) ? absint($_POST['post_id']) : false;
 		$opts = get_post_meta($post_id, 'wdsi-type', true);
 
 		$default_api_key = $this->_data->get_option('mailchimp-api_key');
@@ -56,7 +62,7 @@ class Wdsi_AdminPages {
 			'message' => __('Unbekannte Liste', 'wdsi'),
 		)));
 
-		$email = wdsi_getval($_POST, 'email');
+		$email = sanitize_email(wdsi_getval($_POST, 'email'));
 		if (!is_email($email)) die(json_encode(array(
 			'is_error' => $is_error,
 			'message' => __('Ungültige E-Mail', 'wdsi'),
@@ -110,6 +116,7 @@ class Wdsi_AdminPages {
 	function render_message_override_box () {
 		global $post;
 		if (!$post || !($post instanceof WP_Post)) return;
+		wp_nonce_field('wdsi_admin_meta', 'wdsi_admin_meta_nonce');
 		$msg_id = get_post_meta($post->ID, 'wdsi_message_id', true);
 		$do_not_show = get_post_meta($post->ID, 'wdsi_do_not_show', true);
 		$query = new WP_Query(array(
@@ -141,6 +148,12 @@ class Wdsi_AdminPages {
 			$post = get_post($post_id);
 		}
 		if (!$post) return false;
+		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return false;
+		if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return false;
+		if (!isset($_POST['wdsi_admin_meta_nonce']) || !wp_verify_nonce($_POST['wdsi_admin_meta_nonce'], 'wdsi_admin_meta')) {
+			return false;
+		}
+		if (!current_user_can('edit_post', $post_id)) return false;
 		//if ('post' != $post->post_type) return false; // Deprecated
 		if (isset($_POST['wdsi-message_override'])) {
 			if ($_POST['wdsi-message_override']) update_post_meta($post->ID, 'wdsi_message_id', $_POST['wdsi-message_override']);
@@ -181,6 +194,7 @@ class Wdsi_AdminPages {
 		$page = "edit.php?post_type=" . Wdsi_SlideIn::POST_TYPE;
 		$perms = is_multisite() ? 'manage_network_options' : 'manage_options';
 		if (current_user_can($perms) && !empty($_POST) && isset($_POST['option_page'])) {
+			check_admin_referer('wdsi_options_save', 'wdsi_options_nonce');
 			$changed = false;
 			if ('wdsi_options_page' == wdsi_getval($_POST, 'option_page')) {
 				$services = !empty($_POST['wdsi']['services']) ? $_POST['wdsi']['services'] : array();
@@ -223,6 +237,7 @@ class Wdsi_AdminPages {
 			wp_enqueue_script('wdsi-admin', WDSI_PLUGIN_URL . '/js/wdsi-admin.js', array("jquery", "jquery-ui-core", "jquery-ui-sortable", 'jquery-ui-dialog'));
 			wp_localize_script('wdsi-admin', 'l10nWdsi', array(
 				'clear_set' => __('<strong>&times;</strong> Lösche dieses Set', 'wdsi'),
+				'preview_nonce' => wp_create_nonce('wdsi_preview'),
 			));
 
 			// Preview scripts
@@ -264,8 +279,15 @@ EoWdsiAdminCss;
 	}
 
 	public function json_preview () {
+		if (!check_ajax_referer('wdsi_preview', '_ajax_nonce', false)) {
+			wp_send_json_error(array('message' => __('Ungultige Anfrage', 'wdsi')));
+		}
+		if (!current_user_can('edit_posts')) {
+			wp_send_json_error(array('message' => __('Nicht erlaubt', 'wdsi')));
+		}
 		$data = stripslashes_deep($_POST);
 		$opts = $data['opts'];
+		$opts = is_array($opts) ? $opts : array();
 		$message = (object)array(
 			'ID' => true,
 			'post_title' => __('Slide-In Vorschau', 'wdsi'),
